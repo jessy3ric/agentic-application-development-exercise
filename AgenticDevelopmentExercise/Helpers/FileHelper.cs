@@ -35,7 +35,7 @@
             // Wait for all reads to complete
             var results = await Task.WhenAll(tasks);
 
-            return results.ToDictionary(x => x.Name, x => x.Content);
+            return results.ToDictionary(x => x.Name.Split('.')[0], x => x.Content);
         }
     }
 }
