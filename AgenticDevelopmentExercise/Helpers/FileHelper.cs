@@ -2,7 +2,7 @@
 {
     internal class FileHelper
     {
-        private string[] _fileNames = { "Prompts/AnalyzerAgentPrompt.txt", "Prompts/QueryAgentPrompt.txt", "Prompts/LawyerAgentPrompt.txt" };
+        private string[] _fileNames = { "Prompts/AnalyzerAgentPrompt.txt", "Prompts/ResearcherAgentPrompt.txt", "Prompts/LawyerAgentPrompt.txt" };
 
         public async Task<IDictionary<string, string>> GetSystemPrompts()
         {

@@ -27,7 +27,7 @@
     <None Update="Prompts\AnalyzerAgentPrompt.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\QueryAgentPrompt.txt">
+    <None Update="Prompts\ResearcherAgentPrompt.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
