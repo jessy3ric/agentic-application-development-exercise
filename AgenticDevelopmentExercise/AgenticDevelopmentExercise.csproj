@@ -9,7 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Prompts\LawyerAgentPrompt.txt" />
+    <Compile Include="Prompts\LawyerAgentPrompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +21,15 @@
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Orchestration" Version="1.70.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.InProcess" Version="1.70.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="1.70.0-alpha" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Prompts\AnalyzerAgentPrompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Prompts\QueryAgentPrompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
