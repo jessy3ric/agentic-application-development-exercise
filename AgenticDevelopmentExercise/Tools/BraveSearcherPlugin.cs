@@ -4,12 +4,12 @@ using System.ComponentModel;
 
 namespace AgenticDevelopmentExercise.Tools
 {
-    internal class BraveSearcher
+    internal class BraveSearcherPlugin
     {
         private readonly HttpClient client;
         private string API_KEY;
 
-        public BraveSearcher(string apiKey)
+        public BraveSearcherPlugin(string apiKey)
         {
             API_KEY = apiKey;
             client = new HttpClient();
