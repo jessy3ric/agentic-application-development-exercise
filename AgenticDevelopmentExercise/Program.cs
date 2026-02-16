@@ -5,22 +5,24 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration.Sequential;
 using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 #pragma warning disable SKEXP0110
 #pragma warning disable SKEXP0050
 
-public class Program
+public partial class Program
 {
     // Create a thread-safe queue
     private const string ModelId = "gpt-4o-mini";
+    private ChatHistory History = [];
 
     public static async Task Main(string[] args)
     {
         Console.WriteLine("--- Agentic Script Started ---");
-        if (args.Length == 0) 
-        {
-            throw new ArgumentException("The args are empty. Without user input (text, document, image) this script cannot work. Please refer to the documentation");
-        }
+        //if (args.Length == 0) 
+        //{
+        //    throw new ArgumentException("The args are empty. Without user input (text, document, image) this script cannot work. Please refer to the documentation");
+        //}
 
         var config = new ConfigurationBuilder()
             .AddUserSecrets<Program>()
@@ -56,25 +58,40 @@ public class Program
         
 
         Kernel? kernel = kernelBuilder.Build();
-        SequentialOrchestration agentsOrchestration = await SetupAgents(kernel, prompts);
+        (var agentsOrchestration, var chatHistory) = await SetupAgents(kernel, prompts);
 
         InProcessRuntime runtime = new InProcessRuntime();
         await runtime.StartAsync();
 
         var result = await agentsOrchestration.InvokeAsync(
-        "example user query",
+        "i'm currently facing an issue with my landlord. there is moisture in my flat and he does not want to do anything about it and says that i'm the one at fault. i cannot breathe in that flat",
         runtime);
-        string output = await result.GetValueAsync(TimeSpan.FromSeconds(120));
+        string output = await result.GetValueAsync(TimeSpan.FromSeconds(1000));
         Console.WriteLine($"\n# RESULT: {output}");
+
+        Console.WriteLine("\n\nORCHESTRATION HISTORY");
+        foreach (ChatMessageContent message in chatHistory)
+        {
+            Console.WriteLine(message.Content);
+            Console.WriteLine("\\n\\n");
+        }
     }
 
-    public static async Task<SequentialOrchestration> SetupAgents(Kernel kernel, IDictionary<string, string> prompts)
+    public static async Task<(SequentialOrchestration, ChatHistory)> SetupAgents(Kernel kernel, IDictionary<string, string> prompts)
     {
         // Enable planning
         OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
         {
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
         };
+
+        ChatHistory history = [];
+
+        ValueTask responseCallback(ChatMessageContent response)
+        {
+            history.Add(response);
+            return ValueTask.CompletedTask;
+        }
 
         ChatCompletionAgent analystAgent = new ChatCompletionAgent
         {
@@ -102,7 +119,10 @@ public class Program
         };
 
 
-        SequentialOrchestration orchestration = new(analystAgent, researchAgent, lawyerAgent);
-        return orchestration;
+        SequentialOrchestration orchestration = new(analystAgent, researchAgent, lawyerAgent)
+        {
+            ResponseCallback = responseCallback,
+        };
+        return (orchestration, history);
     }
 }
