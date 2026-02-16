@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Orchestration" Version="1.70.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.InProcess" Version="1.70.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="1.70.0-alpha" />
+    <PackageReference Include="QuestPDF" Version="2026.2.0" />
   </ItemGroup>
 
   <ItemGroup>

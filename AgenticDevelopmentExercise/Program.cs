@@ -73,12 +73,21 @@ public partial class Program
         string output = await result.GetValueAsync(TimeSpan.FromSeconds(1000));
         Console.WriteLine($"\n# RESULT: {output}");
 
+
+
         Console.WriteLine("\n\nORCHESTRATION HISTORY");
         foreach (ChatMessageContent message in chatHistory)
         {
             Console.WriteLine(message.Content);
             Console.WriteLine("\\n\\n");
         }
+        // Generate PDF output
+        string outputFileName = $"legal_document_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+        string outputPath = Path.Combine(Directory.GetCurrentDirectory(), outputFileName);
+
+        fileHelper.GeneratePdf(output, outputPath);
+
+        Console.WriteLine($"\n✓ PDF generated: {outputPath}");
     }
 
     public static async Task<(SequentialOrchestration, ChatHistory)> SetupAgents(

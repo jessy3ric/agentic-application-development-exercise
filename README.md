@@ -35,14 +35,7 @@ dotnet run -- "<UserInput>" "<AdditionalDocumentPath>"
 ```
 Usage Examples
 
-Scenario A: Direct Text Input
-If you want to provide a quick string and a reference image:
-```Bash
-
-dotnet run -- "Draft a non-disclosure agreement for a tech startup." "./images/reference_structure.png"
-```
-
-Scenario B: File-based User Query
+Scenario A: File-based User Query
 If your query is long and stored in a .txt file:
 ```Bash
 
@@ -50,7 +43,12 @@ dotnet run -- "./Queries/my_request.txt" "./Documents/state_law_requirements.pdf
 ```
     Note: The script is smart. If the first argument is a valid file path, it reads the file; otherwise, it treats the string as the direct prompt.
 
+Scenario B: A single query
+If you want to use a simple query, you can just run the script like this: 
+```Bash
 
+dotnet run -- "My landloard is annoying me for X, for Y..."
+```
 ## How It Works
 ### Agent Workflow
 

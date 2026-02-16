@@ -1,4 +1,7 @@
 ﻿using AgenticDevelopmentExercise.Entities;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System.Xml.Linq;
 
 namespace AgenticDevelopmentExercise.Helpers
@@ -61,6 +64,43 @@ namespace AgenticDevelopmentExercise.Helpers
                     );
             }
         }
+
+        public void GeneratePdf(string content, string outputPath)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+
+                    page.Content()
+                        .PaddingVertical(1, Unit.Centimetre)
+                        .Column(column =>
+                        {
+                            column.Spacing(5);
+
+                            column.Item().Text("Legal Document")
+                                .FontSize(16)
+                                .Bold();
+
+                            column.Item().Text($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
+                                .FontSize(9);
+
+                            column.Item().PaddingTop(0.5f, Unit.Centimetre)
+                                .Text(content)
+                                .FontSize(11)
+                                .LineHeight(1.5f);
+                        });
+
+                });
+            })
+            .GeneratePdf(outputPath);
+        }
+
 
         private async Task<string> ParsePdfAsync(string filePath)
         {
