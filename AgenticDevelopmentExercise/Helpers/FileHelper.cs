@@ -1,4 +1,7 @@
-﻿namespace AgenticDevelopmentExercise.Helpers
+﻿using AgenticDevelopmentExercise.Entities;
+using System.Xml.Linq;
+
+namespace AgenticDevelopmentExercise.Helpers
 {
     internal class FileHelper
     {
@@ -16,6 +19,59 @@
                 Console.WriteLine($"Error: {ex.Message}");
             }
             return promptMap;
+        }
+
+        public async Task<(string? content, DocumentType type)> ParseDocumentAsync(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"Document file not found: {filePath}");
+            }
+
+            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+
+            // Text-based documents
+            switch (extension)
+            {
+                case ".txt":
+                case ".md":
+                case ".log":
+                    return (await File.ReadAllTextAsync(filePath), DocumentType.Text);
+
+                case ".pdf":
+                    return (await ParsePdfAsync(filePath), DocumentType.PDF);
+
+                case ".docx":
+                case ".doc":
+                    return (await ParseWordDocumentAsync(filePath), DocumentType.Word);
+
+                case ".csv":
+                    return (await File.ReadAllTextAsync(filePath), DocumentType.CSV);
+
+                case ".json":
+                    return (await File.ReadAllTextAsync(filePath), DocumentType.JSON);
+
+                case ".xml":
+                    return (await File.ReadAllTextAsync(filePath), DocumentType.XML);
+
+                default:
+                    throw new ArgumentException(
+                        $"Unsupported document type: {extension}\n" +
+                        "Supported formats: Images (jpg, png, gif, etc.), PDF, DOCX, TXT, MD, CSV, JSON, XML"
+                    );
+            }
+        }
+
+        private async Task<string> ParsePdfAsync(string filePath)
+        {
+            var parser = new DocumentParser();
+            return await parser.ParsePdfAsync(filePath);
+        }
+
+        private async Task<string> ParseWordDocumentAsync(string filePath)
+        {
+            var parser = new DocumentParser();
+            return await parser.ParseWordDocumentAsync(filePath);
         }
 
         /// <summary>

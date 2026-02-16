@@ -1,4 +1,5 @@
-﻿using AgenticDevelopmentExercise.Helpers;
+﻿using AgenticDevelopmentExercise.Entities;
+using AgenticDevelopmentExercise.Helpers;
 using AgenticDevelopmentExercise.Tools;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
@@ -14,15 +15,18 @@ public partial class Program
 {
     // Create a thread-safe queue
     private const string ModelId = "gpt-4o-mini";
-    private ChatHistory History = [];
 
     public static async Task Main(string[] args)
     {
         Console.WriteLine("--- Agentic Script Started ---");
-        //if (args.Length == 0) 
-        //{
-        //    throw new ArgumentException("The args are empty. Without user input (text, document, image) this script cannot work. Please refer to the documentation");
-        //}
+        // setup semantic kernel with the prompts and api keys and plugins
+        if (args.Length == 0)
+        {
+            throw new ArgumentException("The args are empty. Without user input (text, document, image) this script cannot work. Please refer to the documentation");
+        }
+        var fileHelper = new FileHelper();
+
+        (string userProblem, string? documentContent, DocumentType documentType) = await ParseArgumentsAsync(args, fileHelper);
 
         var config = new ConfigurationBuilder()
             .AddUserSecrets<Program>()
@@ -40,7 +44,6 @@ public partial class Program
             throw new ArgumentException("The brave api key must be present in the user secrets. Refer to the readme.");
         }
 
-        var fileHelper = new FileHelper();
         var prompts = await fileHelper.GetSystemPrompts();
 
 
@@ -58,13 +61,14 @@ public partial class Program
         
 
         Kernel? kernel = kernelBuilder.Build();
-        (var agentsOrchestration, var chatHistory) = await SetupAgents(kernel, prompts);
+        // setup agents
+        (SequentialOrchestration agentsOrchestration, ChatHistory chatHistory) = await SetupAgents(kernel, prompts, userProblem, documentContent, documentType);
 
         InProcessRuntime runtime = new InProcessRuntime();
         await runtime.StartAsync();
 
         var result = await agentsOrchestration.InvokeAsync(
-        "i'm currently facing an issue with my landlord. there is moisture in my flat and he does not want to do anything about it and says that i'm the one at fault. i cannot breathe in that flat",
+        userProblem,
         runtime);
         string output = await result.GetValueAsync(TimeSpan.FromSeconds(1000));
         Console.WriteLine($"\n# RESULT: {output}");
@@ -77,7 +81,12 @@ public partial class Program
         }
     }
 
-    public static async Task<(SequentialOrchestration, ChatHistory)> SetupAgents(Kernel kernel, IDictionary<string, string> prompts)
+    public static async Task<(SequentialOrchestration, ChatHistory)> SetupAgents(
+        Kernel kernel,
+        IDictionary<string, string> prompts,
+        string userProblem,
+        string? documentContent,
+        DocumentType documentType)
     {
         // Enable planning
         OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
@@ -93,10 +102,20 @@ public partial class Program
             return ValueTask.CompletedTask;
         }
 
+        // Prepare enhanced instructions with document context
+        string enhancedAnalystInstructions = prompts["AnalyzerAgentPrompt"];
+        if (!string.IsNullOrEmpty(documentContent))
+        {
+            enhancedAnalystInstructions += $"\n\n[ADDITIONAL CONTEXT]\n" +
+                $"The user has provided a {documentType} document with the following content:\n" +
+                $"---\n{documentContent}\n---\n" +
+                $"Analyze this document in conjunction with the user's problem description.";
+        }
+
         ChatCompletionAgent analystAgent = new ChatCompletionAgent
         {
             Name = "Analyst",
-            Instructions = prompts["AnalyzerAgentPrompt"],
+            Instructions = enhancedAnalystInstructions,
             Kernel = kernel,
             Description = "agent that analyzes the user request to help define its request legal status"
         };
@@ -118,11 +137,68 @@ public partial class Program
             Description = "Edits the final document with all the laws and arguments according to the user situation",
         };
 
-
         SequentialOrchestration orchestration = new(analystAgent, researchAgent, lawyerAgent)
         {
             ResponseCallback = responseCallback,
         };
+
         return (orchestration, history);
     }
+
+    private static async Task<(string userProblem, string? documentContent, DocumentType documentType)> ParseArgumentsAsync(string[] args, FileHelper fileHelper)
+    {
+        if (args.Length == 0)
+        {
+            throw new ArgumentException(
+                "No arguments provided. Please provide at least a problem description or path to a text file.\n" +
+                "Usage: dotnet run \"<problem>\" [document_path]"
+            );
+        }
+
+        // Parse first argument (user problem)
+        string userProblem = await ParseUserProblemAsync(args[0]);
+        Console.WriteLine($"[INFO] User problem loaded ({userProblem.Length} characters)");
+
+        // Parse second argument (optional document)
+        string? documentContent = null;
+        DocumentType documentType = DocumentType.None;
+
+        if (args.Length >= 2)
+        {
+            (documentContent, documentType) = await fileHelper.ParseDocumentAsync(args[1]);
+            Console.WriteLine($"[INFO] Document loaded: {documentType}");
+        }
+
+        return (userProblem, documentContent, documentType);
+    }
+
+    private static async Task<string> ParseUserProblemAsync(string input)
+    {
+        // Check if input is a file path
+        if (File.Exists(input))
+        {
+            string extension = Path.GetExtension(input).ToLowerInvariant();
+
+            if (extension == ".txt")
+            {
+                return await File.ReadAllTextAsync(input);
+            }
+            else
+            {
+                throw new ArgumentException(
+                    $"Unsupported file type for problem description: {extension}. " +
+                    "Only .txt files are supported for the first argument."
+                );
+            }
+        }
+
+        // If not a file, treat as direct string input
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            throw new ArgumentException("The problem description cannot be empty.");
+        }
+
+        return input;
+    }
+
 }
